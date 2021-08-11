@@ -68,11 +68,21 @@
 
         <div id="main" class="col-6"></div>
 
-        <div class="col-3"></div>
+        <div class="col-3">
+
+            <div  class="row">
+                <div  id="time" class="col-12"></div>
+            </div>
+
+            <div id="caroQuestion" class="row"></div>
+
+        </div>
 
     </div>
 
-    <div class="row"></div>
+    <div class="row">
+        <div id="setTime" class="col-12"></div>
+    </div>
 
 </div>
 
@@ -81,8 +91,29 @@
 
 <script>
 
+    let h = null;
+    let m = null;
+    let s = null;
+    let timeout = null;
+
     let core = 0;
     let isLastQuestion = false;
+    let trueAnswer = 0;
+    let falseAnswer = 0;
+
+    function setDefault(){
+        h = null;
+        m = null;
+        s = null;
+        timeout = null;
+        core = 0;
+        isLastQuestion = false;
+        trueAnswer = 0;
+        falseAnswer = 0;
+        document.getElementById("time").innerHTML = "";
+        document.getElementById("caroQuestion").innerHTML = "";
+        listQuiz();
+    }
 
     // trả về danh sách Quiz
     function listQuiz() {
@@ -103,6 +134,27 @@
 
     // trả về danh sách câu hỏi của quiz
     function getQuizComponent(id) {
+
+        str = "<div>\n" +
+            "    <span id=\"h\">Giờ</span> :\n" +
+            "    <span id=\"m\">Phút</span> :\n" +
+            "    <span id=\"s\">Giây</span>\n" +
+            "</div>";
+        document.getElementById("time").innerHTML = str;
+        start();
+
+        $.ajax({
+            type: "GET",
+            url: "http://localhost:8080/api/quizComponents/getAllQuestion?id=" + id,
+            success: function (data){
+                let str = "";
+                for (let i = 0; i < data.length; i++) {
+                    str += "<div id='"+i+"' style='width: 50px;height: 50px;background-color: lightslategray;text-align:center;margin: 5px' class='col-3'>"+(i+1)+"</div>"
+                }
+                document.getElementById("caroQuestion").innerHTML = str;
+            }
+        })
+
         $.ajax({
             type: "GET",
             url: "http://localhost:8080/api/quizComponents/getQuestions?id=" + id,
@@ -112,7 +164,39 @@
         })
     }
 
+// start time
+    function start(){
+        if (h === null)
+        {
+            h = 0;
+            m = 1;
+            s = 30;
+        }
+        if (s === -1){
+            m -= 1;
+            s = 59;
+        }
+        if (m === -1){
+            h -= 1;
+            m = 59;
+        }
+        if (h == -1){
+            clearTimeout(timeout);
+            alert(" timeout, your core is " + core + ", true " + trueAnswer + ", false " + falseAnswer);
+            setDefault();
+            return false;
+        }
+        document.getElementById('h').innerText = h.toString();
+        document.getElementById('m').innerText = m.toString();
+        document.getElementById('s').innerText = s.toString();
 
+        timeout = setTimeout(function(){
+            s--;
+            start();
+        }, 1000);
+    }
+
+// next page
     function next(page, id) {
         let x = page + 1;
         $.ajax({
@@ -124,6 +208,7 @@
         })
     }
 
+    // previous page
     function previous(page, id) {
         let x = page - 1;
         $.ajax({
@@ -179,32 +264,66 @@
                 let str = "<table align='center' style='font-size: 20px' class='table table-dark table-striped'>";
                 str += "<tr style='color: brown'><th>Content</th><th>Correct</th><th colspan='2'></th></tr>"
                 for (let i = 0; i < data.length; i++) {
-                    str += "<tr><td>" + data[i].content + "</td><td>" + data[i].correct.name + "</td>" +
-                        "<td><button onclick='checkAnswer(" + data[i].correct.name + "," + idQuiz + "," + pageShow + ")' class='btn btn-outline-danger'>Button</button></td></tr>";
-
+                    let s = "s" + i;
+                    str += "<tr><td>" + data[i].content + "</td><td>" + data[i].correct.name + "</td><td><input id='"+s+"'   type='checkbox' value='"+data[i].correct.name+"'></td></tr>" ;
                 }
+                str += "<tr><td><button onclick='checkAnswer(" + data.length + "," + idQuiz + "," + pageShow + ")' class='btn btn-outline-danger'>Button</button></td></tr>";
                 str += "</table>";
                 document.getElementById("answers").innerHTML = str;
             }
         })
     }
 
-    function checkAnswer(correct, idQuiz, page) {
-        if (correct == true) {
-            core++;
-            if (isLastQuestion == true) {
-                alert(core);
-            } else {
-                next(page, idQuiz);
-            }
-        } else {
-            if (isLastQuestion == true) {
-                alert(core);
-            } else {
-                next(page, idQuiz);
+// lấy giá trị được chọn
+    function getChoice(size){
+        let array = new Array();
+        console.log(array)
+        for (let i = 0; i < size; i++) {
+            let s = "s" + i;
+            if(document.getElementById(""+s+"").checked == true){
+                array.push((document.getElementById(""+s+"").value));
             }
         }
+        return array;
     }
+
+    function checkAnswer(size, idQuiz, page) {
+        // kiểm tra kết quả user chọn
+
+        let array = getChoice(size);
+console.log(array)
+        if (array.length == 0){
+            alert("chưa chọn kết quả");
+        }else {
+            let correct = true;
+            for (let i = 0; i < array.length; i++) {
+                if(array[i] == "false"){
+                    correct = false;
+                }
+            }
+            if (correct == true) {
+                core++;
+                trueAnswer ++;
+                if (isLastQuestion == true) {
+                    alert("your core is " + core + ", true " + trueAnswer + ", false " + falseAnswer);
+                    setDefault();
+                } else {
+                    next(page, idQuiz);
+                }
+            } else {
+                falseAnswer ++;
+                if (isLastQuestion == true) {
+                    alert("your core is " + core + ", true " + trueAnswer + ", false " + falseAnswer);
+                    setDefault();
+                } else {
+                    next(page, idQuiz);
+                }
+            }
+            document.getElementById(""+page+"").style.backgroundColor = "blue";
+        }
+
+    }
+
 
 
 </script>
