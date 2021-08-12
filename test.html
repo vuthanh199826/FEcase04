@@ -64,14 +64,21 @@
 
     <div class="row">
 
-        <div class="col-3"></div>
+        <div class="col-3">
+            <div class="row">
+                <button onclick="getUserExam(1)">result</button>
+            </div>
+            <div class="row">
+                <div id="exam" class="col-12"></div>
+            </div>
+        </div>
 
         <div id="main" class="col-6"></div>
 
         <div class="col-3">
 
-            <div  class="row">
-                <div  id="time" class="col-12"></div>
+            <div class="row">
+                <div id="time" class="col-12"></div>
             </div>
 
             <div id="caroQuestion" class="row"></div>
@@ -81,7 +88,7 @@
     </div>
 
     <div class="row">
-        <div id="setTime" class="col-12"></div>
+
     </div>
 
 </div>
@@ -96,17 +103,17 @@
     let s = null;
     let timeout = null;
 
-    let core = 0;
+    let score = 0;
     let isLastQuestion = false;
     let trueAnswer = 0;
     let falseAnswer = 0;
 
-    function setDefault(){
+    function setDefault() {
         h = null;
         m = null;
         s = null;
         timeout = null;
-        core = 0;
+        score = 0;
         isLastQuestion = false;
         trueAnswer = 0;
         falseAnswer = 0;
@@ -146,10 +153,10 @@
         $.ajax({
             type: "GET",
             url: "http://localhost:8080/api/quizComponents/getAllQuestion?id=" + id,
-            success: function (data){
+            success: function (data) {
                 let str = "";
                 for (let i = 0; i < data.length; i++) {
-                    str += "<div id='"+i+"' style='width: 50px;height: 50px;background-color: lightslategray;text-align:center;margin: 5px' class='col-3'>"+(i+1)+"</div>"
+                    str += "<div id='" + i + "' style='width: 50px;height: 50px;background-color: lightslategray;text-align:center;margin: 5px' class='col-3'>" + (i + 1) + "</div>"
                 }
                 document.getElementById("caroQuestion").innerHTML = str;
             }
@@ -164,25 +171,24 @@
         })
     }
 
-// start time
-    function start(){
-        if (h === null)
-        {
-            h = 0;
-            m = 1;
-            s = 30;
+    // start time
+    function start() {
+        if (h === null) {
+            h = 1;
+            m = 0;
+            s = 0;
         }
-        if (s === -1){
+        if (s === -1) {
             m -= 1;
             s = 59;
         }
-        if (m === -1){
+        if (m === -1) {
             h -= 1;
             m = 59;
         }
-        if (h == -1){
+        if (h == -1) {
             clearTimeout(timeout);
-            alert(" timeout, your core is " + core + ", true " + trueAnswer + ", false " + falseAnswer);
+            alert(" timeout, your core is " + score + ", true " + trueAnswer + ", false " + falseAnswer);
             setDefault();
             return false;
         }
@@ -190,13 +196,13 @@
         document.getElementById('m').innerText = m.toString();
         document.getElementById('s').innerText = s.toString();
 
-        timeout = setTimeout(function(){
+        timeout = setTimeout(function () {
             s--;
             start();
         }, 1000);
     }
 
-// next page
+    // next page
     function next(page, id) {
         let x = page + 1;
         $.ajax({
@@ -265,7 +271,7 @@
                 str += "<tr style='color: brown'><th>Content</th><th>Correct</th><th colspan='2'></th></tr>"
                 for (let i = 0; i < data.length; i++) {
                     let s = "s" + i;
-                    str += "<tr><td>" + data[i].content + "</td><td>" + data[i].correct.name + "</td><td><input id='"+s+"'   type='checkbox' value='"+data[i].correct.name+"'></td></tr>" ;
+                    str += "<tr><td>" + data[i].content + "</td><td>" + data[i].correct.name + "</td><td><input id='" + s + "'   type='checkbox' value='" + data[i].correct.name + "'></td></tr>";
                 }
                 str += "<tr><td><button onclick='checkAnswer(" + data.length + "," + idQuiz + "," + pageShow + ")' class='btn btn-outline-danger'>Button</button></td></tr>";
                 str += "</table>";
@@ -274,14 +280,14 @@
         })
     }
 
-// lấy giá trị được chọn
-    function getChoice(size){
+    // lấy giá trị được chọn
+    function getChoice(size) {
         let array = new Array();
         console.log(array)
         for (let i = 0; i < size; i++) {
             let s = "s" + i;
-            if(document.getElementById(""+s+"").checked == true){
-                array.push((document.getElementById(""+s+"").value));
+            if (document.getElementById("" + s + "").checked == true) {
+                array.push((document.getElementById("" + s + "").value));
             }
         }
         return array;
@@ -291,39 +297,85 @@
         // kiểm tra kết quả user chọn
 
         let array = getChoice(size);
-console.log(array)
-        if (array.length == 0){
+        console.log(array)
+        if (array.length == 0) {
             alert("chưa chọn kết quả");
-        }else {
+        } else {
             let correct = true;
             for (let i = 0; i < array.length; i++) {
-                if(array[i] == "false"){
+                if (array[i] == "false") {
                     correct = false;
                 }
             }
             if (correct == true) {
-                core++;
-                trueAnswer ++;
+                score++;
+                trueAnswer++;
                 if (isLastQuestion == true) {
-                    alert("your core is " + core + ", true " + trueAnswer + ", false " + falseAnswer);
+                    alert("your core is " + score + ", true " + trueAnswer + ", false " + falseAnswer);
+                    createExam(1, idQuiz, score);
                     setDefault();
                 } else {
                     next(page, idQuiz);
                 }
             } else {
-                falseAnswer ++;
+                falseAnswer++;
                 if (isLastQuestion == true) {
-                    alert("your core is " + core + ", true " + trueAnswer + ", false " + falseAnswer);
+                    alert("your core is " + score + ", true " + trueAnswer + ", false " + falseAnswer);
+                    createExam(1, idQuiz, score);
                     setDefault();
                 } else {
                     next(page, idQuiz);
                 }
             }
-            document.getElementById(""+page+"").style.backgroundColor = "blue";
+            document.getElementById("" + page + "").style.backgroundColor = "blue";
         }
 
     }
 
+    function createExam(idUser, idQuiz, score){
+        let Exam = {
+            user:{
+                id:idUser
+            },
+            quiz:{
+                id: idQuiz
+            },
+            score : score
+        }
+        $.ajax({
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            type:"POST",
+            data: JSON.stringify(Exam),
+            url: "http://localhost:8080/api/exams/create",
+            success: function (data){
+                console.log(data);
+            }
+
+        })
+    }
+
+// trả về danh sách kết quả của user
+    function getUserExam(id){
+        $.ajax({
+            type:"GET",
+            url: "http://localhost:8080/api/exams/searchByIdUser?id="+id,
+            success: function (data){
+                // do here
+                console.log(data);
+                let str = "<table class='table table-striped'>";
+                str += "<tr><th>Name</th><th>Exam</th><th>Score</th></tr>"
+                for (let i = 0; i < data.length; i++) {
+                    str += "<tr><td>"+data[i].user.fullName+"</td><td>"+data[i].quiz.name+"</td><td>"+data[i].score+"</td></tr>";
+                }
+                str += "</table>";
+                document.getElementById("exam").innerHTML = str;
+            }
+
+        })
+    }
 
 
 </script>
